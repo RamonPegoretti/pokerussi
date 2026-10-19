@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseCards } from '../engine/cards';
 import { Table } from '../engine/table';
-import { chooseAction, postflopStrength, preflopStrength } from './simpleBot';
+import { chooseAction, hasDraw, postflopStrength, preflopStrength } from './simpleBot';
 
 describe('simple bot', () => {
   it('rates aces above seven-deuce', () => {
@@ -11,6 +11,18 @@ describe('simple bot', () => {
   it('rates a set above a missed hand', () => {
     const board = parseCards('9s 9d 4c');
     expect(postflopStrength(parseCards('9h Kc'), board)).toBeGreaterThan(postflopStrength(parseCards('2h 3c'), board));
+  });
+
+  it('spots flush and open-ended straight draws', () => {
+    expect(hasDraw(parseCards('Ah 7h Kh 2h 9c'))).toBe(true);
+    expect(hasDraw(parseCards('8c 9d Th Js 2c'))).toBe(true);
+    expect(hasDraw(parseCards('8c 9d Kh Js 2c'))).toBe(false);
+  });
+
+  it('keeps a draw on the flop but not on the river', () => {
+    const hole = parseCards('Ah 7h');
+    expect(postflopStrength(hole, parseCards('Kh 2h 9c'))).toBeGreaterThanOrEqual(0.4);
+    expect(postflopStrength(hole, parseCards('Kh 2h 9c 4d 3s'))).toBeLessThan(0.4);
   });
 
   it('only makes legal moves over many all-bot hands', () => {
