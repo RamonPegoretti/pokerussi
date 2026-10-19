@@ -1,0 +1,154 @@
+:root {
+  --bg: #12161c;
+  --felt: #1d6b45;
+  --felt-edge: #0f3d27;
+  --text: #f2f4f7;
+  --muted: #9aa4b2;
+  --accent: #f5c542;
+  --win: #4ade80;
+  --red: #d22f3c;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--bg); }
+
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100vh;
+}
+
+.top-bar { display: flex; align-items: baseline; gap: 16px; }
+.top-bar h1 { margin: 0; font-size: 22px; letter-spacing: 0.5px; }
+.top-bar span { color: var(--muted); font-size: 14px; }
+
+.table-area {
+  position: relative;
+  flex: 1;
+  min-height: 560px;
+}
+
+.felt {
+  position: absolute;
+  inset: 14% 12% 18% 12%;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, #26845a 0%, var(--felt) 60%, var(--felt-edge) 100%);
+  border: 10px solid #4a2d1a;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.board { display: flex; gap: 8px; }
+.pot { font-weight: 600; background: rgba(0, 0, 0, 0.3); padding: 4px 12px; border-radius: 999px; }
+.result {
+  text-align: center;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.card {
+  width: 54px;
+  height: 76px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  line-height: 1;
+}
+.card.small { width: 38px; height: 54px; font-size: 13px; }
+.card.face { background: #fff; color: #1b1f24; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); }
+.card.face.red { color: var(--red); }
+.card .rank { font-size: 20px; }
+.card.small .rank { font-size: 15px; }
+.card .suit { font-size: 22px; }
+.card.small .suit { font-size: 16px; }
+.card.back {
+  background: repeating-linear-gradient(45deg, #2b4c9b, #2b4c9b 4px, #23407f 4px, #23407f 8px);
+  border: 2px solid #fff;
+}
+.card.slot { border: 2px dashed rgba(255, 255, 255, 0.2); }
+
+.seat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 120px;
+  transition: opacity 0.2s;
+}
+.seat .hole { display: flex; gap: 4px; min-height: 54px; }
+.seat .plate {
+  background: #232a34;
+  border: 2px solid #343d4a;
+  border-radius: 10px;
+  padding: 6px 14px;
+  text-align: center;
+  min-width: 110px;
+}
+.seat.to-act .plate { border-color: var(--accent); box-shadow: 0 0 12px rgba(245, 197, 66, 0.5); }
+.seat.winner .plate { border-color: var(--win); box-shadow: 0 0 14px rgba(74, 222, 128, 0.6); }
+.seat.out { opacity: 0.45; }
+.seat .name { font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.seat .stack { color: var(--accent); font-variant-numeric: tabular-nums; }
+.dealer {
+  background: #fff;
+  color: #000;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.action-label { font-size: 13px; color: var(--muted); min-height: 16px; }
+.bet {
+  background: #f8fafc;
+  color: #111;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 64px;
+  flex-wrap: wrap;
+}
+.controls button {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid #3b4553;
+  background: #2a323d;
+  color: var(--text);
+  cursor: pointer;
+}
+.controls button:hover { background: #343e4b; }
+.controls button.primary { background: var(--accent); color: #1b1f24; border-color: var(--accent); }
+.controls .raise { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.controls .presets { display: flex; gap: 4px; }
+.controls .presets button { padding: 6px 10px; font-size: 13px; }
+.controls input[type='range'] { width: 180px; accent-color: var(--accent); }
+.waiting { color: var(--muted); }
