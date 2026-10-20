@@ -19,37 +19,55 @@ export const REEL_WEIGHTS: Record<SlotSymbol, number> = {
   diamond: 1,
 };
 
-/** Payout multipliers for three of a kind. */
+/** Payout multipliers for three of a kind. Nothing else pays. */
 export const THREE_OF_A_KIND: Record<SlotSymbol, number> = {
-  cherry: 5,
-  lemon: 7,
-  bell: 14,
-  star: 40,
-  seven: 200,
-  diamond: 1000,
+  cherry: 2,
+  lemon: 3,
+  bell: 5,
+  star: 10,
+  seven: 20,
+  diamond: 150,
 };
 
-/** Payout multiplier for exactly two cherries anywhere on the line. */
-export const TWO_CHERRIES = 2;
+/**
+ * Chance that a spin lines the reels up on purpose. Independent reels alone
+ * make three of a kind rare (about 1 spin in 16) and leave lots of near
+ * misses, so this lifts it to about 1 in 5.
+ */
+export const LINE_UP_CHANCE = 0.14;
+
+/** Which symbol a lined-up spin lands on. */
+export const LINE_UP_WEIGHTS: Record<SlotSymbol, number> = {
+  cherry: 40,
+  lemon: 30,
+  bell: 16,
+  star: 8,
+  seven: 4,
+  diamond: 1,
+};
 
 export const SYMBOLS = Object.keys(REEL_WEIGHTS) as SlotSymbol[];
-const TOTAL_WEIGHT = SYMBOLS.reduce((sum, s) => sum + REEL_WEIGHTS[s], 0);
+const totalWeight = (weights: Record<SlotSymbol, number>) =>
+  SYMBOLS.reduce((sum, s) => sum + weights[s], 0);
 
-export function spinReel(rng: () => number): SlotSymbol {
-  let roll = rng() * TOTAL_WEIGHT;
+function pick(weights: Record<SlotSymbol, number>, rng: () => number): SlotSymbol {
+  let roll = rng() * totalWeight(weights);
   for (const s of SYMBOLS) {
-    roll -= REEL_WEIGHTS[s];
+    roll -= weights[s];
     if (roll < 0) return s;
   }
   return SYMBOLS[SYMBOLS.length - 1]!;
 }
 
+/** One reel on its own, also used for the spinning animation. */
+export function spinReel(rng: () => number): SlotSymbol {
+  return pick(REEL_WEIGHTS, rng);
+}
+
 /** Multiplier of the bet that a finished line pays (0 for a loss). */
 export function lineMultiplier(line: SlotSymbol[]): number {
   const [a, b, c] = line;
-  if (a === b && b === c) return THREE_OF_A_KIND[a!];
-  const cherries = line.filter((s) => s === 'cherry').length;
-  return cherries === 2 ? TWO_CHERRIES : 0;
+  return a === b && b === c ? THREE_OF_A_KIND[a!] : 0;
 }
 
 export interface SpinResult {
@@ -59,17 +77,31 @@ export interface SpinResult {
 }
 
 export function spin(bet: number, rng: () => number = Math.random): SpinResult {
-  const line = [spinReel(rng), spinReel(rng), spinReel(rng)];
+  let line: SlotSymbol[];
+  if (rng() < LINE_UP_CHANCE) {
+    const s = pick(LINE_UP_WEIGHTS, rng);
+    line = [s, s, s];
+  } else {
+    line = [spinReel(rng), spinReel(rng), spinReel(rng)];
+  }
   const multiplier = lineMultiplier(line);
   return { line, multiplier, payout: bet * multiplier };
 }
 
-/** Exact expected return per chip bet, from the reel weights and paytable. */
-export function returnToPlayer(): number {
-  let total = 0;
-  for (const a of SYMBOLS) for (const b of SYMBOLS) for (const c of SYMBOLS) {
-    const p = (REEL_WEIGHTS[a] * REEL_WEIGHTS[b] * REEL_WEIGHTS[c]) / TOTAL_WEIGHT ** 3;
-    total += p * lineMultiplier([a, b, c]);
+/** Exact chance of three of a kind for each symbol on one spin. */
+export function threeOfAKindOdds(): Record<SlotSymbol, number> {
+  const reelTotal = totalWeight(REEL_WEIGHTS);
+  const lineUpTotal = totalWeight(LINE_UP_WEIGHTS);
+  const odds = {} as Record<SlotSymbol, number>;
+  for (const s of SYMBOLS) {
+    odds[s] = LINE_UP_CHANCE * (LINE_UP_WEIGHTS[s] / lineUpTotal)
+      + (1 - LINE_UP_CHANCE) * (REEL_WEIGHTS[s] / reelTotal) ** 3;
   }
-  return total;
+  return odds;
+}
+
+/** Exact expected return per chip bet. */
+export function returnToPlayer(): number {
+  const odds = threeOfAKindOdds();
+  return SYMBOLS.reduce((sum, s) => sum + odds[s] * THREE_OF_A_KIND[s], 0);
 }

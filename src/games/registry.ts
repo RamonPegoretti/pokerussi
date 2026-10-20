@@ -29,7 +29,7 @@ export const GAMES: GameInfo[] = [
   {
     id: 'slots',
     name: 'Slots',
-    blurb: 'Three reels, one line, jackpot at 1000×.',
+    blurb: 'Three reels, one line. Three of a kind about every fifth spin.',
     stakes: 'Spins from 1',
     minBuyIn: 10,
     defaultBuyIn: 500,
