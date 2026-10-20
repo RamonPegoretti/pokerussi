@@ -1,21 +1,22 @@
 # pokerussi
 
-A play-money Texas Hold'em game for the browser.
+A play-money casino for the browser. It has a lobby with Texas Hold'em, blackjack and slots, all sharing one chip balance.
 
-## Status
+Live at https://pokerussi.vercel.app/. Every merge to `main` updates the site.
 
-Steps 1 and 2 of the plan are done: the game engine and a table where you
-play against five bots in the browser.
+## How it works
 
-- `cards.ts`: cards, deck, shuffle
-- `evaluator.ts`: best five-card hand from seven, with tiebreaks
-- `table.ts`: a hand from blinds to payout: betting rounds, min-raise rules,
-  short all-ins, uncalled bets, side pots and split pots
+- **Lobby:** shows your chips. Pick a game and choose how many chips to bring to the table. When you leave, whatever is left goes back to your balance. If you run out, you can claim 10,000 free chips.
+- **Chips** are saved in your browser (`src/casino/wallet.ts`). If you close the tab while sitting at a table, those chips are returned to your balance the next time you visit.
 
-- `src/bots/simpleBot.ts`: bots that bet on hand strength and pot odds
-- `src/ui`: the table screen (React)
+## Code
 
-Next: rooms to play with friends online.
+- `src/engine`: poker cards, hand evaluator and table rules
+- `src/bots`: poker bots
+- `src/games/<game>`: each game's rules (`engine.ts`) and screen
+- `src/games/registry.ts`: the games listed in the lobby. Add a new game here.
+- `src/casino`: the shared wallet
+- `src/ui`: the lobby, buy-in dialog and shared pieces
 
 ## Develop
 
