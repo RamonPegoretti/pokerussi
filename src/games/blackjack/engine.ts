@@ -82,6 +82,11 @@ export class Blackjack {
     return this.phase === 'player' ? this.hands[this.active] : undefined;
   }
 
+  /** Cards left before the shoe is reshuffled from all decks. */
+  get cardsLeft(): number {
+    return this.shoe.length;
+  }
+
   /** Whether the dealer's hole card should be shown. */
   get dealerRevealed(): boolean {
     return this.phase === 'settled';

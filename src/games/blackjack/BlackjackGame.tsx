@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CardView } from '../../ui/CardView';
 import { GameHeader } from '../../ui/GameHeader';
 import type { GameProps } from '../types';
@@ -6,6 +6,8 @@ import { Blackjack, handValue, type Outcome, type PlayerHand } from './engine';
 
 const CHIPS = [10, 25, 100, 500];
 const MIN_BET = 10;
+/** Pause before the dealer flips the hole card, then between each card drawn. */
+const REVEAL_MS = 650;
 
 const OUTCOME_TEXT: Record<Outcome, string> = {
   blackjack: 'Blackjack!',
@@ -26,18 +28,37 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
 
   const [, setTick] = useState(0);
   const [bet, setBet] = useState(Math.min(MIN_BET * 5, buyIn));
+  // While the round's end is being shown, how many dealer cards are visible.
+  // The hole card counts as hidden until this reaches 2.
+  const [dealerShown, setDealerShown] = useState<number | null>(null);
 
   function run(action: () => void) {
     action();
     onStackChange(game.stack);
+    if (game.phase === 'settled') setDealerShown(1);
     setTick((t) => t + 1);
   }
 
+  // The dealer turns the hole card over, then draws one card at a time.
+  useEffect(() => {
+    if (dealerShown === null) return;
+    const done = dealerShown >= game.dealer.length;
+    const timer = setTimeout(() => setDealerShown(done ? null : dealerShown + 1), REVEAL_MS);
+    return () => clearTimeout(timer);
+  }, [dealerShown, game]);
+
+  const revealing = dealerShown !== null;
   const playing = game.phase === 'player';
+  const visibleDealer = revealing ? game.dealer.slice(0, Math.max(2, dealerShown)) : game.dealer;
+  const holeHidden = playing || (revealing && dealerShown < 2);
+  const finished = game.phase === 'settled' && !revealing;
   // Chips in front of you during a round count as yours for the "at the table" figure.
-  const atTable = game.stack + (playing ? game.hands.reduce((s, h) => s + h.bet, 0) : 0);
+  // Until the dealer has finished, don't give away the result.
+  const bets = game.hands.reduce((s, h) => s + h.bet, 0);
+  const payouts = game.hands.reduce((s, h) => s + (h.payout ?? 0), 0);
+  const atTable = playing ? game.stack + bets : revealing ? game.stack - payouts + bets : game.stack;
   const effectiveBet = Math.min(bet, game.stack);
-  const net = game.phase === 'settled'
+  const net = finished
     ? game.hands.reduce((s, h) => s + (h.payout ?? 0) - h.bet, 0)
     : 0;
 
@@ -45,9 +66,9 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
     <div className="app">
       <GameHeader
         title="Blackjack"
-        detail="Dealer stands on 17 · blackjack pays 3:2"
+        detail={`Dealer stands on 17 · blackjack pays 3:2 · 6 decks, ${game.cardsLeft} cards left`}
         tableChips={atTable}
-        canLeave={!playing}
+        canLeave={!playing && !revealing}
         leaveHint="Finish this round first"
         onLeave={onLeave}
       />
@@ -55,21 +76,22 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
       <div className="bj-felt">
         <section className="bj-row">
           <div className="bj-label">
-            Dealer {game.dealer.length > 0 && (
-              <span className="bj-total">{game.dealerRevealed ? totalLabel(game.dealer) : '?'}</span>
+            Dealer {visibleDealer.length > 0 && (
+              <span className="bj-total">{holeHidden ? '?' : totalLabel(visibleDealer)}</span>
             )}
           </div>
           <div className="bj-cards">
-            {game.dealer.length === 0
+            {visibleDealer.length === 0
               ? <CardView empty />
-              : game.dealer.map((c, i) => (
-                <CardView key={i} card={i === 1 && !game.dealerRevealed ? undefined : c} />
+              : visibleDealer.map((c, i) => (
+                <CardView key={i} card={i === 1 && holeHidden ? undefined : c} />
               ))}
           </div>
         </section>
 
         <div className="bj-message">
-          {game.phase === 'settled'
+          {revealing ? 'Dealer plays…'
+            : finished
             ? net > 0 ? `You win ${net}` : net < 0 ? `You lose ${-net}` : 'Push, your bet comes back'
             : playing ? 'Your move' : 'Place your bet'}
         </div>
@@ -84,7 +106,7 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
               <div className="bj-label">
                 <span className="bj-total">{totalLabel(hand.cards)}</span>
                 <span className="bet">{hand.bet}</span>
-                {hand.outcome && <span className={`bj-outcome ${hand.outcome}`}>{OUTCOME_TEXT[hand.outcome]}</span>}
+                {hand.outcome && finished && <span className={`bj-outcome ${hand.outcome}`}>{OUTCOME_TEXT[hand.outcome]}</span>}
               </div>
             </div>
           ))}
@@ -92,7 +114,9 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
       </div>
 
       <div className="controls">
-        {playing ? (
+        {revealing ? (
+          <span className="waiting">Dealer plays…</span>
+        ) : playing ? (
           <>
             <button onClick={() => run(() => game.hit())}>Hit</button>
             <button onClick={() => run(() => game.stand())}>Stand</button>

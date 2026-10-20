@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { GameHeader } from '../../ui/GameHeader';
 import type { GameProps } from '../types';
 import {
-  spin, spinReel, SYMBOL_GLYPHS, SYMBOLS, THREE_OF_A_KIND, TWO_CHERRIES, type SlotSymbol, type SpinResult,
+  spin, spinReel, SYMBOL_GLYPHS, SYMBOLS, THREE_OF_A_KIND, type SlotSymbol, type SpinResult,
 } from './engine';
 
 const BETS = [1, 5, 10, 50, 100, 500];
@@ -86,10 +86,6 @@ export function SlotsGame({ buyIn, onStackChange, onLeave }: GameProps) {
                 <td>{THREE_OF_A_KIND[s]}×</td>
               </tr>
             ))}
-            <tr>
-              <td>Any two {SYMBOL_GLYPHS.cherry}</td>
-              <td>{TWO_CHERRIES}×</td>
-            </tr>
           </tbody>
         </table>
       </div>
