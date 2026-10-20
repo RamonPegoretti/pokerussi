@@ -1,4 +1,5 @@
 import { type Card, newDeck, shuffle } from '../../engine/cards';
+import { settleSideBet, type SideBetId, type SideBetResult } from './sideBets';
 
 export type Phase = 'betting' | 'player' | 'settled';
 export type Outcome = 'blackjack' | 'win' | 'push' | 'lose';
@@ -64,6 +65,8 @@ export class Blackjack {
   dealer: Card[] = [];
   /** Index of the hand being played. */
   active = 0;
+  /** Side bets from this round, settled as soon as the cards are dealt. */
+  sideBets: SideBetResult[] = [];
 
   private readonly decks: number;
   private readonly rng: () => number;
@@ -92,13 +95,18 @@ export class Blackjack {
     return this.phase === 'settled';
   }
 
-  deal(bet: number): void {
+  /** Starts a round with a main bet and optional side bets (0 or missing means none). */
+  deal(bet: number, sideBets: Partial<Record<SideBetId, number>> = {}): void {
     if (this.phase === 'player') throw new Error('Round in progress');
-    if (!Number.isInteger(bet) || bet <= 0) throw new Error('Bet must be a positive whole number');
-    if (bet > this.stack) throw new Error('Not enough chips');
+    const sides = Object.entries(sideBets).filter(([, amount]) => amount) as [SideBetId, number][];
+    for (const amount of [bet, ...sides.map(([, a]) => a)]) {
+      if (!Number.isInteger(amount) || amount <= 0) throw new Error('Bets must be positive whole numbers');
+    }
+    const total = bet + sides.reduce((sum, [, a]) => sum + a, 0);
+    if (total > this.stack) throw new Error('Not enough chips');
     if (!this.fixedShoe && this.shoe.length < this.decks * 52 * 0.25) this.shoe = this.freshShoe();
 
-    this.stack -= bet;
+    this.stack -= total;
     const hand: PlayerHand = { cards: [], bet, done: false, doubled: false, fromSplit: false };
     this.hands = [hand];
     this.dealer = [];
@@ -108,6 +116,9 @@ export class Blackjack {
     hand.cards.push(this.draw());
     this.dealer.push(this.draw());
     this.phase = 'player';
+
+    this.sideBets = sides.map(([id, amount]) => settleSideBet(id, amount, hand.cards, this.dealer[0]!));
+    for (const side of this.sideBets) this.stack += side.payout;
 
     // Dealer peeks: a dealer blackjack, or a player blackjack, ends the round at once.
     if (isBlackjack(this.dealer) || isBlackjack(hand.cards)) {
