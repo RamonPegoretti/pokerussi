@@ -12,7 +12,7 @@ export function GameHeader({ title, detail, tableChips, canLeave, onLeave, leave
   return (
     <header className="game-header">
       <button className="back" onClick={onLeave} disabled={!canLeave} title={canLeave ? undefined : leaveHint ?? 'Finish this hand first'}>
-        ← Lobby
+        <span aria-hidden>←</span> Lobby
       </button>
       <div className="game-title">
         <h1>{title}</h1>

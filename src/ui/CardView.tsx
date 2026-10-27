@@ -17,10 +17,14 @@ export function CardView({ card, empty, small }: Props) {
   if (!card) return <div className={`card back${size}`} />;
   const red = card.suit === 'h' || card.suit === 'd';
   const rank = RANKS[card.rank - 2] === 'T' ? '10' : RANKS[card.rank - 2];
+  const suit = SUIT_SYMBOLS[card.suit];
   return (
-    <div className={`card face${red ? ' red' : ''}${size}`}>
-      <span className="rank">{rank}</span>
-      <span className="suit">{SUIT_SYMBOLS[card.suit]}</span>
+    <div className={`card face${red ? ' red' : ''}${size}`} aria-label={`${rank}${suit}`}>
+      <span className="corner">
+        <span className="rank">{rank}</span>
+        <span className="suit">{suit}</span>
+      </span>
+      <span className="pip" aria-hidden>{suit}</span>
     </div>
   );
 }

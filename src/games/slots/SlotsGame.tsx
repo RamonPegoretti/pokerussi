@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { GameHeader } from '../../ui/GameHeader';
 import type { GameProps } from '../types';
 import {
-  spin, spinReel, SYMBOL_GLYPHS, SYMBOLS, THREE_OF_A_KIND, type SlotSymbol, type SpinResult,
+  spin, spinReel, SYMBOLS, THREE_OF_A_KIND, type SlotSymbol, type SpinResult,
 } from './engine';
+import { SymbolIcon } from './SymbolIcon';
 
 const BETS = [1, 5, 10, 50, 100, 500];
 const REEL_STOP_MS = [700, 1000, 1300];
@@ -64,25 +65,30 @@ export function SlotsGame({ buyIn, onStackChange, onLeave }: GameProps) {
       />
 
       <div className="slots">
-        <div className={`slot-window${won ? ' win' : ''}`}>
-          {reels.map((s, i) => (
-            <div key={i} className={`reel${stopped[i] ? '' : ' spinning'}${s === 'seven' ? ' seven' : ''}`}>
-              {SYMBOL_GLYPHS[s]}
-            </div>
-          ))}
-        </div>
+        <div className="cabinet">
+          <div className={`slot-window${won ? ' win' : ''}`}>
+            {reels.map((s, i) => (
+              <div key={i} className={`reel${stopped[i] ? '' : ' spinning'}`}>
+                <SymbolIcon symbol={s} />
+              </div>
+            ))}
+          </div>
 
-        <div className="slot-message">
-          {spinning ? 'Spinning…'
-            : result ? (won ? `You win ${result.payout}!` : 'No win')
-            : 'Pick a bet and spin'}
+          <div className={`slot-message${won ? ' won' : ''}`} aria-live="polite">
+            {spinning ? 'Spinning…'
+              : result ? (won ? `You win ${result.payout.toLocaleString()}` : 'No win this time')
+              : 'Pick a bet and spin'}
+          </div>
         </div>
 
         <table className="paytable">
+          <caption>Three in a row pays</caption>
           <tbody>
             {[...SYMBOLS].reverse().map((s) => (
-              <tr key={s}>
-                <td>{SYMBOL_GLYPHS[s].repeat(3)}</td>
+              <tr key={s} className={won && result?.line[0] === s ? 'hit' : undefined}>
+                <td className="paytable-line">
+                  <span><SymbolIcon symbol={s} /><SymbolIcon symbol={s} /><SymbolIcon symbol={s} /></span>
+                </td>
                 <td>{THREE_OF_A_KIND[s]}×</td>
               </tr>
             ))}
@@ -99,7 +105,7 @@ export function SlotsGame({ buyIn, onStackChange, onLeave }: GameProps) {
               {BETS.map((b) => (
                 <button
                   key={b}
-                  className={`chip${b === bet ? ' selected' : ''}`}
+                  className={`chip chip-${b}${b === bet ? ' selected' : ''}`}
                   disabled={b > stack || spinning}
                   onClick={() => setBet(b)}
                 >

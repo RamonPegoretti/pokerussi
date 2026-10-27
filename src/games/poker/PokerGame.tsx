@@ -109,8 +109,9 @@ export function PokerGame({ buyIn, onStackChange, onLeave }: GameProps) {
               <CardView key={i} card={table.board[i]} empty={!table.board[i]} />
             ))}
           </div>
-          {!handOver && <div className="pot">Pot {table.potTotal}</div>}
+          {!handOver && <div className="pot"><span>Pot</span> {table.potTotal.toLocaleString()}</div>}
           {handOver && <ResultText table={table} />}
+          <div className="felt-mark" aria-hidden>pokerussi</div>
         </div>
 
         {table.players.map((p, seat) => {
@@ -132,7 +133,7 @@ export function PokerGame({ buyIn, onStackChange, onLeave }: GameProps) {
                   {p.name}
                   {table.button === seat && <span className="dealer">D</span>}
                 </div>
-                <div className="stack">{p.stack}</div>
+                <div className="stack">{p.stack.toLocaleString()}</div>
               </div>
               <div className="action-label">
                 {p.stack === 0 && p.inHand && !p.folded ? 'All-in' : lastActions[p.id] ?? ''}
@@ -197,7 +198,7 @@ function ResultText({ table }: { table: Table }) {
     const verb = pot.winners.length > 1 ? 'split' : 'wins';
     const hand = result.hands[pot.winners[0]!.playerId];
     const potName = result.pots.length > 1 ? (i === 0 ? ' the main pot' : ' a side pot') : '';
-    return `${who} ${verb}${potName} ${pot.amount}${hand ? ` with ${CATEGORY_NAMES[hand.category].toLowerCase()}` : ''}`;
+    return `${who} ${verb}${potName} ${pot.amount.toLocaleString()}${hand ? ` with ${CATEGORY_NAMES[hand.category].toLowerCase()}` : ''}`;
   });
   return <div className="result">{lines.map((l, i) => <div key={i}>{l}</div>)}</div>;
 }
