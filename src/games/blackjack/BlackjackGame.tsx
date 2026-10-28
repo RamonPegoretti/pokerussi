@@ -3,9 +3,12 @@ import { CardView } from '../../ui/CardView';
 import { GameHeader } from '../../ui/GameHeader';
 import type { GameProps } from '../types';
 import { Blackjack, handValue, type Outcome, type PlayerHand } from './engine';
+import { SIDE_BET_NAMES, SIDE_BET_PAYTABLES, type SideBetId } from './sideBets';
 
 const CHIPS = [10, 25, 100, 500];
 const MIN_BET = 10;
+const SIDE_BET_STEPS = [0, 5, 10, 25, 50];
+const SIDE_BET_IDS = Object.keys(SIDE_BET_NAMES) as SideBetId[];
 /** Pause before the dealer flips the hole card, then between each card drawn. */
 const REVEAL_MS = 650;
 
@@ -28,6 +31,8 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
 
   const [, setTick] = useState(0);
   const [bet, setBet] = useState(Math.min(MIN_BET * 5, buyIn));
+  // Side bets stay set from round to round, like chips left on the table.
+  const [sides, setSides] = useState<Record<SideBetId, number>>({ perfectPairs: 0, twentyOnePlusThree: 0 });
   // While the round's end is being shown, how many dealer cards are visible.
   // The hole card counts as hidden until this reaches 2.
   const [dealerShown, setDealerShown] = useState<number | null>(null);
@@ -57,10 +62,14 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
   const bets = game.hands.reduce((s, h) => s + h.bet, 0);
   const payouts = game.hands.reduce((s, h) => s + (h.payout ?? 0), 0);
   const atTable = playing ? game.stack + bets : revealing ? game.stack - payouts + bets : game.stack;
-  const effectiveBet = Math.min(bet, game.stack);
+  const sideTotal = SIDE_BET_IDS.reduce((sum, id) => sum + sides[id], 0);
+  const mainBet = Math.max(MIN_BET, Math.min(bet, game.stack - sideTotal));
+  const canDeal = mainBet + sideTotal <= game.stack;
+  const sideNet = game.sideBets.reduce((s, b) => s + b.payout - b.bet, 0);
   const net = finished
-    ? game.hands.reduce((s, h) => s + (h.payout ?? 0) - h.bet, 0)
+    ? game.hands.reduce((s, h) => s + (h.payout ?? 0) - h.bet, 0) + sideNet
     : 0;
+  const inRound = playing || revealing || game.phase === 'settled';
 
   return (
     <div className="app">
@@ -96,6 +105,16 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
             : playing ? 'Your move' : 'Place your bet'}
         </div>
 
+        {inRound && game.sideBets.length > 0 && (
+          <div className="side-results">
+            {game.sideBets.map((b) => (
+              <span key={b.id} className={`side-result${b.win ? ' won' : ''}`}>
+                {SIDE_BET_NAMES[b.id]}: {b.win ? `${b.win}, +${b.payout - b.bet}` : `lost ${b.bet}`}
+              </span>
+            ))}
+          </div>
+        )}
+
         <section className="bj-hands">
           {game.hands.length === 0 && <div className="bj-cards"><CardView empty /></div>}
           {game.hands.map((hand, i) => (
@@ -127,6 +146,27 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
           <button className="primary" onClick={onLeave}>You're out of chips. Back to the lobby</button>
         ) : (
           <>
+            <div className="side-bets">
+              {SIDE_BET_IDS.map((id) => (
+                <div key={id} className="side-bet">
+                  <div className="side-bet-name">{SIDE_BET_NAMES[id]}</div>
+                  <div className="side-bet-pays">
+                    {SIDE_BET_PAYTABLES[id].map(([name, pays]) => `${name} ${pays}:1`).join(' · ')}
+                  </div>
+                  <div className="side-bet-steps">
+                    {SIDE_BET_STEPS.map((step) => (
+                      <button
+                        key={step}
+                        className={`chip${sides[id] === step ? ' selected' : ''}`}
+                        onClick={() => setSides({ ...sides, [id]: step })}
+                      >
+                        {step === 0 ? 'Off' : step}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
             <div className="chip-picker">
               {CHIPS.map((c) => (
                 <button key={c} className="chip" disabled={bet + c > game.stack} onClick={() => setBet(bet + c)}>
@@ -135,8 +175,13 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
               ))}
               <button onClick={() => setBet(MIN_BET)}>Reset</button>
             </div>
-            <button className="primary" onClick={() => run(() => game.deal(Math.max(MIN_BET, effectiveBet)))}>
-              Deal · bet {Math.max(MIN_BET, effectiveBet)}
+            <button
+              className="primary"
+              disabled={!canDeal}
+              title={canDeal ? undefined : 'Not enough chips for these side bets'}
+              onClick={() => run(() => game.deal(mainBet, sides))}
+            >
+              Deal · bet {mainBet}{sideTotal > 0 ? ` + ${sideTotal} side` : ''}
             </button>
           </>
         )}
