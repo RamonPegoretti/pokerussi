@@ -75,7 +75,7 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
     <div className="app">
       <GameHeader
         title="Blackjack"
-        detail={`Dealer stands on 17 · blackjack pays 3:2 · 6 decks, ${game.cardsLeft} cards left`}
+        detail={`6 decks · ${game.cardsLeft} cards left in the shoe`}
         tableChips={atTable}
         canLeave={!playing && !revealing}
         leaveHint="Finish this round first"
@@ -83,6 +83,10 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
       />
 
       <div className="bj-felt">
+        <div className="felt-print" aria-hidden>
+          <span>Blackjack pays 3 to 2</span>
+          <span>Dealer stands on all 17s</span>
+        </div>
         <section className="bj-row">
           <div className="bj-label">
             Dealer {visibleDealer.length > 0 && (
@@ -116,7 +120,12 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
         )}
 
         <section className="bj-hands">
-          {game.hands.length === 0 && <div className="bj-cards"><CardView empty /></div>}
+          {game.hands.length === 0 && (
+            <div className="bet-spot">
+              <span className="bet-spot-amount">{mainBet.toLocaleString()}</span>
+              <span className="bet-spot-label">{sideTotal > 0 ? `+ ${sideTotal} side` : 'your bet'}</span>
+            </div>
+          )}
           {game.hands.map((hand, i) => (
             <div key={i} className={`bj-hand${playing && i === game.active ? ' active' : ''}`}>
               <div className="bj-cards">
@@ -157,7 +166,7 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
                     {SIDE_BET_STEPS.map((step) => (
                       <button
                         key={step}
-                        className={`chip${sides[id] === step ? ' selected' : ''}`}
+                        className={`step${sides[id] === step ? ' selected' : ''}`}
                         onClick={() => setSides({ ...sides, [id]: step })}
                       >
                         {step === 0 ? 'Off' : step}
@@ -169,11 +178,11 @@ export function BlackjackGame({ buyIn, onStackChange, onLeave }: GameProps) {
             </div>
             <div className="chip-picker">
               {CHIPS.map((c) => (
-                <button key={c} className="chip" disabled={bet + c > game.stack} onClick={() => setBet(bet + c)}>
-                  +{c}
+                <button key={c} className={`chip chip-${c}`} disabled={bet + c > game.stack} onClick={() => setBet(bet + c)} aria-label={`Add ${c}`}>
+                  {c}
                 </button>
               ))}
-              <button onClick={() => setBet(MIN_BET)}>Reset</button>
+              <button className="quiet" onClick={() => setBet(MIN_BET)}>Clear</button>
             </div>
             <button
               className="primary"
